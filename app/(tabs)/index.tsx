@@ -1,98 +1,96 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { colors, radius, spacing } from '../../constants/theme';
+import { useApp, formatCurrency } from '../../context/AppContext';
+import StatCard from '../../components/StatCard';
+import ProgressBar from '../../components/ProgressBar';
+import TransactionItem from '../../components/TransactionItem';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const QUICK_RETAILERS = ['Pick n Pay', 'Shoprite', 'SPAR'];
 
-export default function HomeScreen() {
+export default function Home() {
+  const {
+    studentName,
+    university,
+    startingDebt,
+    remainingDebt,
+    totalReduced,
+    pointsBalance,
+    transactions,
+    simulatePurchase,
+  } = useApp();
+
+  const percentagePaid = (totalReduced / startingDebt) * 100;
+
+  const handleQuickPurchase = () => {
+    const retailer = QUICK_RETAILERS[Math.floor(Math.random() * QUICK_RETAILERS.length)];
+    const tx = simulatePurchase(retailer);
+    Alert.alert(
+      'Purchase simulated',
+      `${retailer}: spent ${formatCurrency(tx.amountSpent)}, reduced debt by ${formatCurrency(tx.debtReduced)}.`
+    );
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.greeting}>Hi, {studentName.split(' ')[0]} 👋</Text>
+      <Text style={styles.subtitle}>{university}</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.debtCard}>
+        <Text style={styles.debtLabel}>Remaining balance</Text>
+        <Text style={styles.debtValue}>{formatCurrency(remainingDebt)}</Text>
+        <ProgressBar percentage={percentagePaid} />
+        <Text style={styles.debtSub}>
+          {formatCurrency(totalReduced)} of {formatCurrency(startingDebt)} reduced ({percentagePaid.toFixed(1)}%)
+        </Text>
+      </View>
+
+      <View style={styles.statsRow}>
+        <StatCard label="Points balance" value={pointsBalance.toString()} icon="star" />
+        <StatCard label="Purchases logged" value={transactions.length.toString()} icon="receipt" accent={colors.border} />
+      </View>
+
+      <TouchableOpacity style={styles.simulateButton} onPress={handleQuickPurchase}>
+        <Text style={styles.simulateText}>Simulate a purchase</Text>
+      </TouchableOpacity>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recent activity</Text>
+      </View>
+
+      {transactions.length === 0 ? (
+        <Text style={styles.empty}>No purchases yet — tap "Simulate a purchase" above to see how it works.</Text>
+      ) : (
+        transactions.slice(0, 3).map((tx) => <TransactionItem key={tx.id} transaction={tx} />)
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xl },
+  greeting: { fontSize: 24, fontWeight: '700', color: colors.text },
+  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2, marginBottom: spacing.lg },
+  debtCard: {
+    backgroundColor: colors.text,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  debtLabel: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+  debtValue: { color: '#fff', fontSize: 32, fontWeight: '800', marginTop: 4, marginBottom: spacing.md },
+  debtSub: { color: '#D9D9D9', fontSize: 12, marginTop: spacing.sm },
+  statsRow: { flexDirection: 'row', marginBottom: spacing.md, marginHorizontal: -spacing.xs / 2 },
+  simulateButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    gap: 8,
+    marginBottom: spacing.lg,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  simulateText: { fontWeight: '700', color: colors.text, fontSize: 15 },
+  sectionHeader: { marginBottom: spacing.sm },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  empty: { color: colors.textMuted, fontSize: 13, fontStyle: 'italic' },
 });
